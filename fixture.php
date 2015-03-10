@@ -1,11 +1,11 @@
 <?php
 	require_once ('lib/functions.php');
-	require_once ('lib/bycript.php');
+	require_once ('li/bycript.php');
 
 	$conexao = conexaoDB();
 	
 	$str = "DROP TABLE IF EXISTS tbl_usuario";
-	$conexao->query($qtr);
+	$conexao->query($str);
 
 	$str = "CREATE TABLE tbl_usuario (
   		cod_usr int(3) NOT NULL AUTO_INCREMENT,
@@ -18,13 +18,13 @@
  		UNIQUE KEY email (semail_usr)) 
  		ENGINE=MyISAM  DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci
  		";
-	$conexao->query($qtr);
+	$conexao->query($str);
 	
 	$senha = ('123SenhaProvisoria');
 	$hash = Bcrypt::hash($senha, 12);	
 
 	$str = "INSERT INTO tbl_usuario (semail_usr, snome_usr, scookie_usr, ssenha_usr, bativo_usr) VALUES 
-	('dzbola@bol.com.br','Eduardo','',$senha,1)
+	('dzbola@bol.com.br','Eduardo','','$hash',1)
 	";
-	$conexao->query($qtr);
+	$conexao->query($str);
 ?>
