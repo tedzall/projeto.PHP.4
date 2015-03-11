@@ -1,8 +1,10 @@
 <?php 
+	session_start();
+	
 	require_once ('lib/functions.php');
 
 	if(!isset($_SESSION['emailUsr']) ){
-  		header ("Location: index.php");
+  		header ("Location: login.php");
     }
 
 	$conexao = conexaoDB();
@@ -17,6 +19,7 @@
     	<title>Projeto PHP 4</title>
 
     	<link href="css/bootstrap.min.css" rel="stylesheet">
+    	<link href="css/bootstrap-theme.min.css" rel="stylesheet">
     	<link href="css/standard.css" rel="stylesheet">
 
 	    <script src="js/jquery.js"></script>
@@ -38,19 +41,26 @@
 
 				var titShort = $("#titShort").val();
 				var tit = $("#tit").val();
-				var ativo = $("#ativo").attr('checked')==true?1:0;
+				var ativo = $("#ativo").is(':checked')?1:0;
 				var conteudo = $("#conteudo").val();
 				var cod = $("#cod_conteudo").val();
+				var msg = "<p>Não foi possível salvar o conteúdo !!!</p>";
+				var css = "bg-danger";
 
-				$.getJSON('saveDadosConteudo.php',{cod:cod, tit:tit, ativo:ativo, conteudo:conteudo, titShort:titShor}).done(function(data){
+				$('html, body').animate({scrollTop:0}, 'slow');
+				
+				$("#message").removeClass("hidden").addClass("bg-priority").html("<p>Aguarde ... Salvando dados !!!");
+
+				$.getJSON('saveDadosConteudo.php',{cod:cod, tit:tit, ativo:ativo, conteudo:conteudo, titShort:titShort}).done(function(data){
 					if(data.flag){
-						$("#message").addClass("bg-success").text("Conteúdo salvo com sucesso !!!");
-					}else{
-						$("#message").addClass("bg-danger").text("Não foi possível salvar o conteúdo !!!");
+						msg = "<p>Conteúdo salvo com sucesso !!!</p>";
+						css = "bg-success";
 					}
+					$("#message").removeClass("hidden").addClass(css).html(msg)
 				}).fail(function(jqXHR, textStatus, errorThrown) {
-					$("#message").addClass("bg-danger").text("Não foi possível salvar o conteúdo !!!");
+					$("#message").removeClass("hidden").addClass(css).html(msg);
 				});	
+				setTimeout('$("#message").addClass("hidden")',5000);
 			});
 
 			CKEDITOR.replace("conteudo");	
@@ -63,11 +73,14 @@
 
 			$.getJSON('getDadosConteudo.php',{cod: cod}).done(function(data){
 
+				$('html, body').animate({scrollTop:0}, 'slow');
+
 				if(data.flag){
 					$("#titShort").val(data.titShort);
 					$("#tit").val(data.tit);
-					$("#ativo").prop('checked', data.ativo);
+					$("#ativo").attr("checked",data.ativo);
 					$("#conteudo").val(data.conteudo);
+					CKEDITOR.instances.conteudo.setData(data.conteudo);
 					$("#cod_conteudo").val(cod);
 					$(".jumbotron").find('h1').text(data.titShort + ' - Conteúdo');
 					$(".nav>li").removeClass('active');
@@ -124,7 +137,7 @@
 		        	</div>	
 
 					<div class="checkbox">
-	        			<label><input type="checkbox" name="ativo" id="ativo" value="1" checked> Conteúdo Ativo</label>
+	        			<label><input type="checkbox" name="ativo" id="ativo" value="1"> Conteúdo Ativo</label>
 					</div>
 
 					

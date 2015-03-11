@@ -1,113 +1,12 @@
 <?php 
-	session_start();
-
 	require_once ('lib/functions.php');
-	require_once ('lib/bycript.php');
-
-	unset($_SESSION["nomeUsr"]);
-	unset($_SESSION["emailUsr"]);
 
 	$conexao = conexaoDB();
 
-	$pagina = "ger.php";
-
-	if (isset($_COOKIE["idUsr"]) && isset($_COOKIE["marcaUsr"])){
-    	if ($_COOKIE["idUsr"]!="" || $_COOKIE["marcaUsr"]!=""){
-       		$marca = base64_decode($_COOKIE["marcaUsr"]);	
-       		$str = "SELECT * FROM tbl_usuario WHERE cod_usr = :idUsr AND scookie_usr = :marca AND scookie_usr <> '' AND bativo_usr = 1 ";
-			$rst = $conexao->prepare($str);
-			$rst->bindValue(":idUsr",$_COOKIE["idUsr"]); 
-			$rst->bindValue(":marca",$marca); 
-			$rst->execute();
-			
-			if(1==$rst->rowCount()){			
-
-				$row = $rst->fetch(PDO::FETCH_ASSOC);
-
-				$_SESSION["nomeUsr"] = $row['snome_usr'];
-				$_SESSION["emailUsr"] = $row['semail_usr'];
-
-				header ("Location: $pagina");
-       		}
-   	 	}
- 	}
-
-	$error = false;
-
-	if (isset($_POST['flagSubmit'])){
-
-		$valid = false;
-
-
-       	$str = " SELECT * FROM tbl_usuario WHERE semail_usr = :email ";
-		$rst = $conexao->prepare($str);
-		$rst->bindValue(":email",$_POST['email']); 
-		$rst->execute();
-       	       	
-		if(1==$rst->rowCount()){
-						
-			$row = $rst->fetch(PDO::FETCH_ASSOC);
-
-			if (Bcrypt::check($_POST['senha'], $row['ssenha_usr'])) {
-				if(1==$row['bativo_usr']){
-
-                	$valid = true;
-                	
-                	$cod_usr = $row['cod_usr'];
-
-                	$_SESSION['nome'] = $row['snome_usr']; 
-   		        	$_SESSION['email'] = $row['semail_usr'];
-
-					$error = "Login efetuado com sucesso !!!"; 
-				}else{
-					$error = "Acesso bloqueado !!!";
-				}
-           	}else{
-               	$error = "Senha incorreta !!!";
-			}	
-		}else{
-       		$error = 'Email incorreto !!!';
-		}
-        
-		$ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) and strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
-
-   		if ($valid){
-			if (isset($_POST['flagLogged']) and $_POST['flagLogged'] == 1){
-				$numero_aleatorio = mt_rand(1000000,999999999);
- 				$str = "UPDATE tbl_usuario SET scookie_usr = :scookie_usr WHERE cod_usr = :cod_usr ";
-				$rst = $conexao->prepare($str);
-				$rst->bindValue(":scookie_usr",$numero_aleatorio); 
-				$rst->bindValue(":cod_usr",$cod_usr); 
-
-				setcookie("idUsr", $cod_usr, time()+(60*60*24*365));
-       			setcookie("marcaUsr", base64_encode($numero_aleatorio), time()+(60*60*24*365));
-			}
-			if ($ajax){
-				header('Cache-Control: no-cache, must-revalidate');
-				header('Expires: '.date('r', time()+(86400*365)));
-				header('Content-type: application/json');
-				echo json_encode(array(
-					'valid' => true,
-					'redirect' => $pagina
-				));
-				exit();
-			}else{
-				header('Location: '.$pagina);
-				exit();
-			}
-		}else{
-			if ($ajax){
-				header('Cache-Control: no-cache, must-revalidate');
-				header('Expires: '.date('r', time()+(86400*365)));
-				header('Content-type: application/json');
-				echo json_encode(array(
-					'valid' => false,
-					'error' => $error
-				));
-				exit();
-			}
-        }
-	}
+	$sql = "SELECT cod_conteudo AS COD, stit_menu_conteudo AS TIT FROM tbl_conteudo WHERE bativo_conteudo = 1 ";
+	$rst = $conexao->prepare($sql);
+	$rst->execute();
+	$row = $rst->fetchALL(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,68 +17,113 @@
     	<title>Projeto PHP 4</title>
 
     	<link href="css/bootstrap.min.css" rel="stylesheet">
+    	<link href="css/bootstrap-theme.min.css" rel="stylesheet">
     	<link href="css/standard.css" rel="stylesheet">
 
 	    <script src="js/jquery.js"></script>
    	 	<script src="js/bootstrap.min.js"></script>
 
 		<script>
-			
-		$(document).ready(function()
-		{
-			$('.form-signin').submit(function(event){
+			$(document).ready(function() {
 
-				event.preventDefault();
-				
-				var email = $('#email').val();
-				var senha = $('#senha').val();
-				
-				var data = {
-						flagSubmit: 'send',
-						email: email,
-						senha: senha,
-						flagLogged: $('#flagLogged').attr('checked') ? 1 : 0
-				}
-
-				$('#message').removeClass('hidden').addClass('bg-info').text('Aguarde !!! Processando ...');
-
-
-				$.ajax({
-						url: 'index.php',
-						dataType: 'json',
-						type: 'POST',
-						data: data,
-						success: function(data, textStatus, XMLHttpRequest){
-							if (data.valid){
-								document.location.href = data.redirect;
-							}else{
-								$('#message').removeClass('bg-info').addClass('bg-danger').text(data.error);
-							}	
-						},
-						error: function(XMLHttpRequest, textStatus, errorThrown){
-							$('#message').removeClass('bg-info').addClass('bg-danger').text('Sistema instável !!! Tente novamente.');
-						}
+				$(this).on("click",".btn",function(){
+					var nome = $("#nome").val();
+					var email = $("#email").val();
+					var assunto = $("#assunto").val();
+					var mensagem = $("#mensagem").val();
+					var html = "<h3>Seus dados foram enviados com sucesso !!!</h3><p>Seque abaixo os dados que você enviou:</p><ul><li>Nome: <b>"+nome+"</b></li><li>Email: <b>"+email+"</b></li><li>Assunto: <b>"+assunto+"</b></li><li>Mensagem: <br/><b>"+mensagem+"</b></li></ul>";
+					$("#msg-form").removeClass("hidden").html(html);
+					setTimeout(clearAllForm,8000);
 				});
-					
+			
+				$(this).on("click",".menu-bar li, .result-conteudo",function(event){
+					if('login.php'!=$(this).find('a').attr('href')){
+						event.preventDefault();
+						var codConteudo = $(this).find('a').attr('href').replace( /#/g, "" );
+						var pagina = 0==codConteudo?'contato.php':'conteudo.php';
+						var id = $(this).index();
+						loadConteudo(codConteudo,pagina,id);
+					}
+				});
+			
+				$(this).on("click", ".searchBt", function(event){
+					event.preventDefault();
+					var palavra = $('#search').val();	
+
+					$('#conteudo').load('search.php', {palavra:palavra},function( response, status, xhr ) {
+						if ( status == "error" ) {
+   	 					var msg = "Ops !!! Não foi possível efetuar sua pesquisa neste momento. Tente novamente.";
+   	 						$( "#conteudo" ).html( msg + xhr.status + " " + xhr.statusText );
+  						}
+					});
+				
+				});
+			
+				loadConteudo(1,'conteudo.php',0);
 			});
 			
-		});			
+			function loadConteudo(cod,pag,id){
+				$('#conteudo').load(pag, {codConteudo:cod},function( response, status, xhr ) {
+					if ( status == "error" ) {
+    					var msg = "Ops !!! Não foi possível carregar o conteúdo neste momento. Tente novamente.";
+    						$( "#conteudo" ).html( msg + xhr.status + " " + xhr.statusText );
+  					}
+  					$('.menu-bar li').removeClass('active');
+  					$('.menu-bar li:eq('+id+')').addClass('active');
+				});
+			}
+			
+			function clearAllForm(){
+				$("#msg-form").addClass("hidden");
+				$("#nome").val('');
+				$("#email").val('');
+				$("#assunto").val('');
+				$("#mensagem").val('');
+			}
 		</script>
 
   	</head>
 
 	<body>
-	    <div class="container">
-     		<form class="form-signin">
-        		<h2 class="form-signin-heading">Acesso Gerenciador</h2>
-        		<p class="hidden" id="message"></p>
-		        <label for="email" class="sr-only">Email</label>
-    		    <input type="email" id="email" class="form-control" placeholder="Email" required autofocus>
-        		<label for="senha" class="sr-only">Senha</label>
-        		<input type="password" id="senha" class="form-control" placeholder="Senha" required>
-        		<div class="checkbox"><label><input type="checkbox" id="flagLogged" value="1"> Mantenha-me conectado</label></div>
-        		<button class="btn btn-lg btn-primary btn-block" type="submit">Login</button>
-		      </form>
-	    </div>
+
+		<!-- Header -->
+  		<?php require_once('header.php') ?>
+		<!-- end.Header -->	
+
+		<!-- Miolo -->
+		<div id="miolo"> 
+
+			<!-- Menu -->
+			<div id="menu">
+        		<ul class="menu-bar">
+<?php
+	foreach($row as $data) {
+		echo '<li class="'.(1==$data['COD']?'active':'').'"><a href="#'.$data['COD'].'">'.ucfirst(utf8_encode($data['TIT'])).'</a></li>';
+}
+?>        			
+					<li><a href="#0">Contato</a></li>';
+					<li><a href="login.php" title="Gerenciador de Conteúdo" target="_blank">Admin</a></li>';
+            	</ul>
+            	
+				<form class="form-pesquisa">
+					<div class="input-append">
+						<input class="span2" id="search" type="text" placeholder="Pesquisa...">
+						<button class="btn btn-mini searchBt" type="button">OK</button>
+					</div>
+				</form>
+    	    </div>
+			<!-- end.Menu -->
+
+			<!-- Conteudo -->
+	        <div id="conteudo"></div>
+			<!-- end.Conteudo -->
+
+    	</div> 
+    	<!-- end.Miolo -->
+
+		<!-- Footer -->
+		<?php require_once('footer.php') ?>
+		<!-- end.Footer -->	
+
 	</body>
 </html>
