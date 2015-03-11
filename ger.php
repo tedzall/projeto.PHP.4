@@ -42,7 +42,7 @@
 				var titShort = $("#titShort").val();
 				var tit = $("#tit").val();
 				var ativo = $("#ativo").is(':checked')?1:0;
-				var conteudo = $("#conteudo").val();
+				var conteudo = CKEDITOR.instances.conteudo.getData();
 				var cod = $("#cod_conteudo").val();
 				var msg = "<p>Não foi possível salvar o conteúdo !!!</p>";
 				var css = "bg-danger";
